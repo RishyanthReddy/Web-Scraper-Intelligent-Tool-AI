@@ -317,7 +317,14 @@ export class ScraperEngine {
       case "xml":
         return this.convertToXML(data);
       case "excel":
-        return this.convertToCSV(data); // Excel uses CSV format with specific MIME type
+        // Import the Excel utilities dynamically to avoid issues with SSR
+        try {
+          const excelUtils = require("./utils/excelUtils");
+          return excelUtils.convertToExcel(data);
+        } catch (error) {
+          console.error("Error loading Excel utilities:", error);
+          return this.convertToCSV(data); // Fallback to CSV if Excel utils fail
+        }
       default:
         return JSON.stringify(data, null, 2);
     }
@@ -347,7 +354,7 @@ export class ScraperEngine {
       rows.push(["HEADINGS"]);
       rows.push(["Level", "Text"]);
       data.content.headings.forEach((heading) => {
-        rows.push([String(heading.level), heading.text]);
+        rows.push([String(heading.level || ""), heading.text || ""]);
       });
       rows.push([]);
     }
@@ -356,7 +363,7 @@ export class ScraperEngine {
     if (data.content?.paragraphs && data.content.paragraphs.length > 0) {
       rows.push(["PARAGRAPHS"]);
       data.content.paragraphs.forEach((paragraph, index) => {
-        rows.push([`Paragraph ${index + 1}`, paragraph]);
+        rows.push([`Paragraph ${index + 1}`, paragraph || ""]);
       });
       rows.push([]);
     }
@@ -366,7 +373,11 @@ export class ScraperEngine {
       rows.push(["LINKS"]);
       rows.push(["Text", "URL", "Internal"]);
       data.content.links.forEach((link) => {
-        rows.push([link.text, link.url, String(link.isInternal)]);
+        rows.push([
+          link.text || "",
+          link.url || "",
+          String(link.isInternal || false),
+        ]);
       });
       rows.push([]);
     }
@@ -377,8 +388,8 @@ export class ScraperEngine {
       rows.push(["Alt Text", "Source", "Width", "Height"]);
       data.content.images.forEach((image) => {
         rows.push([
-          image.alt,
-          image.src,
+          image.alt || "",
+          image.src || "",
           String(image.width || ""),
           String(image.height || ""),
         ]);
@@ -390,9 +401,9 @@ export class ScraperEngine {
     if (data.content?.lists && data.content.lists.length > 0) {
       rows.push(["LISTS"]);
       data.content.lists.forEach((list, listIndex) => {
-        rows.push([`List ${listIndex + 1} (${list.type})`]);
+        rows.push([`List ${listIndex + 1} (${list.type || "unknown"})`]);
         list.items.forEach((item, itemIndex) => {
-          rows.push([`Item ${itemIndex + 1}`, item]);
+          rows.push([`Item ${itemIndex + 1}`, item || ""]);
         });
         rows.push([]);
       });
@@ -407,27 +418,37 @@ export class ScraperEngine {
         ]);
 
         // Add table headers
-        if (table.headers.length > 0) {
-          rows.push(table.headers);
+        if (table.headers && table.headers.length > 0) {
+          rows.push(table.headers.map((header) => header || "[No Header]"));
         }
 
         // Add table rows
-        table.rows.forEach((row) => {
-          rows.push(row);
-        });
+        if (table.rows && table.rows.length > 0) {
+          table.rows.forEach((row) => {
+            rows.push(row.map((cell) => cell || "[Empty Cell]"));
+          });
+        }
 
         rows.push([]);
       });
     }
 
     // Convert rows to CSV
-    return rows
-      .map((row) =>
-        row
-          .map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`)
-          .join(","),
-      )
-      .join("\n");
+    try {
+      return rows
+        .map((row) =>
+          row
+            .map((cell) => `"${String(cell || "").replace(/"/g, '""')}"`)
+            .join(","),
+        )
+        .join("\n");
+    } catch (error) {
+      console.error("Error converting to CSV:", error);
+      return (
+        "Error generating CSV: " +
+        (error instanceof Error ? error.message : String(error))
+      );
+    }
   }
 
   /**

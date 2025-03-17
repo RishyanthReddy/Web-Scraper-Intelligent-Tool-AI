@@ -75,6 +75,7 @@ const Home = () => {
     setCurrentUrl(url);
     setScrapeStatus("loading");
     setError("");
+    setExtractedData(null); // Clear previous data
 
     try {
       // Import the scraper service dynamically to avoid issues with SSR
@@ -179,6 +180,35 @@ const Home = () => {
               data={extractedData}
               isLoading={scrapeStatus === "loading"}
               error={error}
+              onDownload={(format) => {
+                if (!extractedData) return;
+
+                try {
+                  // Import the scraper service dynamically
+                  import("../services/ScraperService").then((module) => {
+                    const scraperService = module.default;
+                    const { content, filename, mimeType } =
+                      scraperService.downloadData(extractedData, format);
+
+                    // Create a blob and trigger download
+                    const blob = new Blob([content], { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+
+                    // Clean up
+                    setTimeout(() => {
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    }, 100);
+                  });
+                } catch (error) {
+                  console.error("Error downloading data:", error);
+                }
+              }}
             />
           </div>
         </div>

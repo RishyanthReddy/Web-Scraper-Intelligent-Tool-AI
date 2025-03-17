@@ -94,13 +94,19 @@ const ResultsPanel = ({
 
   const filterData = (data: any, term: string) => {
     if (!term) return data;
+    if (!data) return null;
 
     const searchTermLower = term.toLowerCase();
 
     // Simple implementation - in a real app, this would be more sophisticated
     const stringifyAndCheck = (obj: any): boolean => {
-      const str = JSON.stringify(obj).toLowerCase();
-      return str.includes(searchTermLower);
+      try {
+        const str = JSON.stringify(obj).toLowerCase();
+        return str.includes(searchTermLower);
+      } catch (error) {
+        console.error("Error stringifying object for search:", error);
+        return false;
+      }
     };
 
     return stringifyAndCheck(data) ? data : null;
@@ -117,15 +123,26 @@ const ResultsPanel = ({
             variant="outline"
             size="sm"
             onClick={() => onDownload("json")}
+            disabled={!data}
           >
             <Download className="h-4 w-4 mr-2" />
             JSON
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onDownload("csv")}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDownload("csv")}
+            disabled={!data}
+          >
             <Download className="h-4 w-4 mr-2" />
             CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onDownload("xml")}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDownload("xml")}
+            disabled={!data}
+          >
             <Download className="h-4 w-4 mr-2" />
             XML
           </Button>
@@ -133,6 +150,7 @@ const ResultsPanel = ({
             variant="outline"
             size="sm"
             onClick={() => onDownload("excel")}
+            disabled={!data}
           >
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Excel
@@ -166,11 +184,17 @@ const ResultsPanel = ({
             <div className="text-red-500 p-4 bg-red-50 rounded">{error}</div>
           ) : filteredData ? (
             <div className="font-mono text-sm bg-gray-50 p-4 rounded-md overflow-auto h-[400px]">
-              {renderJsonNode(filteredData)}
+              {data ? (
+                renderJsonNode(filteredData)
+              ) : (
+                <div>No data available. Please scrape a URL first.</div>
+              )}
             </div>
           ) : (
             <div className="text-gray-500 p-4 bg-gray-50 rounded">
-              No results match your search.
+              {data
+                ? "No results match your search."
+                : "No data available. Please scrape a URL first."}
             </div>
           )}
         </TabsContent>
@@ -184,11 +208,15 @@ const ResultsPanel = ({
             <div className="text-red-500 p-4 bg-red-50 rounded">{error}</div>
           ) : filteredData ? (
             <pre className="font-mono text-sm bg-gray-50 p-4 rounded-md overflow-auto h-[400px] whitespace-pre-wrap">
-              {JSON.stringify(filteredData, null, 2)}
+              {data
+                ? JSON.stringify(filteredData, null, 2)
+                : "No data available. Please scrape a URL first."}
             </pre>
           ) : (
             <div className="text-gray-500 p-4 bg-gray-50 rounded">
-              No results match your search.
+              {data
+                ? "No results match your search."
+                : "No data available. Please scrape a URL first."}
             </div>
           )}
         </TabsContent>

@@ -33,7 +33,13 @@ export interface ScrapedData {
       height?: number;
     }>;
     lists?: Array<{ type: "ordered" | "unordered"; items: string[] }>;
-    tables?: Array<{ headers: string[]; rows: string[][] }>;
+    tables?: Array<{
+      headers: string[];
+      rows: string[][];
+      caption?: string;
+      id?: string;
+      class?: string;
+    }>;
     mainText?: string;
   };
   raw?: any;

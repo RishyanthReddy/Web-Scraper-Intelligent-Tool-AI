@@ -122,7 +122,7 @@ class ScraperService {
   ): { content: string; filename: string; mimeType: string } {
     const content = this.convertData(data, format);
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const domain = new URL(data.url).hostname;
+    const domain = data.url ? new URL(data.url).hostname : "scraped-data";
 
     let filename = `${domain}-${timestamp}`;
     let mimeType = "";
@@ -141,9 +141,8 @@ class ScraperService {
         mimeType = "application/xml";
         break;
       case "excel":
-        filename += ".xlsx";
-        mimeType =
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        filename += ".csv"; // Using CSV for Excel since we don't have actual Excel generation
+        mimeType = "text/csv";
         break;
     }
 
